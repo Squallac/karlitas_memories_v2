@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="50" height="20" tilewidth="32" tileheight="32" nextobjectid="1">
+ <tileset firstgid="1" name="scifi_platformTiles_32x32" tilewidth="32" tileheight="32">
+  <image source="scifi_platformTiles_32x32.png" width="1120" height="736"/>
+ </tileset>
+ <layer name="platforms" width="50" height="20">
+  <data encoding="base64" compression="zlib">
+   eJztlmEKgCAMRs26WR27uop2k+aPQEZmppsme/D+OBQ/xmBKCYLQOyu4ee6Rekx8P/c/bzWg9TzQu1edC5Nxz6rnHPiMkho5vvQ/5jTw52gJyUHLrO8N0WqOVLhyLDpsCaQfdcFzUypH6lyW5q/9wPSSQ8MeMHq6vYBi36D2BJMzoAo=
+  </data>
+ </layer>
+ <layer name="spikes" width="50" height="20">
+  <data encoding="base64" compression="zlib">
+   eJztziEKADAMA8D2/5/ZEycqZgYtzI07iElMIgAAAKCsPLl1k+0l3Zefbai8FXA=
+  </data>
+ </layer>
+</map>

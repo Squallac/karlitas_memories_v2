@@ -1,0 +1,22 @@
+/*----------------------------------------------------------------------------*/
+sprite_sheet "stakes" 1024 x 600 margin 1
+
+img "stakes.xcf.bz2"
+
+"stakes" image_size * 1 with img
+  "sprite"
+  ;
+
+"left" "left end" * 1 with img
+  "stakes"
+  glob "ivy*back"
+  glob "*wood*"
+  mask "left end"
+  ;
+
+"right" "right end" * 1 with img
+  "stakes"
+  glob "ivy*back"
+  glob "*wood*"
+  mask "right end"
+  ;
