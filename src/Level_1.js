@@ -41,15 +41,25 @@ var music;
 var jumpTimer = 0;
 
 var is_animation_playing = false;
-
-var animation_started               = false;
-var second_animation_started        = false;
-var rulo_animation_started          = false;
-var blank_animation_started         = true;
+var blank_animation_started = true;
 
 var blank;
 var blank_counter = 0;
 var blank_total_counter = 0;
+
+var stars = [];
+var max_star_number = 3;
+var starPowerCooldown = 0;
+
+var small_star_power = function() {
+    this.posX = 0;
+    this.posY= 0;
+    this.speedX= 10;
+    this.speedY= 100;
+    this.timeout= 0;
+    this.lifespan = 100;
+    this.cooldown = 10;
+};
 
 BasicGame.Level_1.prototype = {
 
@@ -172,7 +182,7 @@ BasicGame.Level_1.prototype = {
         this.Handle_Collisions();
 
         if (!is_animation_playing) {
-            this.Handle_Player_Movement();
+            this.Handle_Player_Actions();
         } 
 
         this.Handle_Camera_Movement();
@@ -184,11 +194,15 @@ BasicGame.Level_1.prototype = {
         this.physics.arcade.collide(rulo, platforms);
     },
 
+    Handle_Player_Actions: function() {
+        this.Handle_Player_Movement();
+        this.Handle_Player_Attack();
+    },
+
     Handle_Player_Movement: function() {
         player.body.velocity.x = 0;
 
-        //Movement
-        if(cursors.left.isDown) {
+        if (cursors.left.isDown) {
             player.body.velocity.x = -150;
             player.animations.play('left');
             
@@ -200,16 +214,72 @@ BasicGame.Level_1.prototype = {
             player.animations.stop();
             player.frame = 4;
         }
-        
+
         //JUMP
         if (cursors.up.isDown && player.body.blocked.down && (this.time.now > jumpTimer)) {
             player.body.velocity.y = -280;
             jumpTimer = this.time.now + 750;
         }
+    },
 
-        //Attack
-        if (this.zKey.isDown) {
-            console.log('ATACK!');
+    Handle_Player_Attack: function() {
+        if (starPowerCooldown <= 0) {
+            enableStarPower = true;
+        }
+        
+        if (this.zKey.isDown && enableStarPower && (stars.length < max_star_number)) {
+            this.Create_New_Star_Bullet();
+        }
+
+        this.Check_Star_List();
+        starPowerCooldown--;
+    },
+
+    Create_New_Star_Bullet : function() {
+        var that = this;
+        var star = new small_star_power();
+        var star_offset_x = player.width/2;
+        var star_offset_y = player.height/2;
+
+        var star_position_x =  player.position.x + star_offset_x;
+        var star_position_y =  player.position.y + star_offset_y;
+
+        star.sprite = that.add.sprite(star_position_x, star_position_y,'star');
+        star.sprite.scale.setTo(0.5, 0.5); 
+
+        if (cursors.left.isDown) {
+            star.speedX = -star.speedX;
+        }
+
+        stars.push(star);
+        starPowerCooldown = star.cooldown;
+        enableStarPower = false;
+    },
+
+    Check_Overlap: function(spriteA, spriteB) {
+        var boundsA = spriteA.getBounds();
+        var boundsB = spriteB.getBounds();
+
+        return Phaser.Rectangle.intersects(boundsA, boundsB);
+    },
+
+    Check_Star_List: function() {
+        for (var index = 0; index < stars.length; index++) {
+            var current_star = stars[index];
+            current_star.timeout++;
+            current_star.sprite.position.x += current_star.speedX;
+
+            /*
+            if (this.Check_Overlap(rulo, current_star.sprite)) {
+                current_star.sprite.destroy();
+                stars.splice(index, 1);
+            }
+            */
+
+            if (current_star.timeout >= current_star.lifespan) {
+                current_star.sprite.destroy();
+                stars.splice(index, 1);
+            }
         }
     },
 
