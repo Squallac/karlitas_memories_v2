@@ -28,10 +28,12 @@ BasicGame.Level_1 = function (game) {
 
 var player;
 var rulo;
+var distancia;
 
 var cursors;
 var map;
 var background;
+var dialog = {};
 
 var pictures = [];
 
@@ -42,6 +44,15 @@ var jumpTimer = 0;
 
 var is_animation_playing = false;
 var blank_animation_started = true;
+var animation_transition_counter_time = 150 ;
+var animation_transition_counter = animation_transition_counter_time;
+
+var ANIMATION_STATES = {
+    RULO_THANKS: 0,
+    RULO_SEARCHING_FOR_DIAMOND_TEXT: 1,
+    RULO_SEARCHING_FOR_DIAMOND: 2,
+    RULO_BEING_CAPTURED: 3
+};
 
 var blank;
 var blank_counter = 0;
@@ -138,6 +149,25 @@ BasicGame.Level_1.prototype = {
         rulo.frame = 0;   
     },
 
+    Set_Up_Distancia: function() {
+        
+        var xOffset = -64;
+        var yOffset = 145;
+
+        var posInWorldX = (this.world.width/2) - xOffset;
+        var posInWorldY = this.world.height - yOffset;
+
+        distancia = this.add.sprite(posInWorldX, posInWorldY, 'distancia');
+
+        this.physics.arcade.enable(distancia);
+
+        distancia.body.collideWorldBounds = true;
+        distancia.body.bounce.y = 0.1;  
+
+        distancia.animations.add('left', [0,1,2,3], 10, true);
+        distancia.animations.add('right', [5,6,7,8], 10, true);
+    },
+
     Set_Up_Pictures: function() {
 
         var pictures_margin = 280;
@@ -176,22 +206,123 @@ BasicGame.Level_1.prototype = {
         blank.alpha = 0;
     },
 
+    Set_Up_Dialog: function() {
+        var xOffset = 64;
+        var yOffset = 80;
+
+        var posInWorldX = this.camera.x + xOffset;
+        var posInWorldY = this.world.height - yOffset;
+        
+        dialog.text = this.add.text(posInWorldX, posInWorldY, '', {
+            font: '20px Arial',
+            fill: '#ffffff',
+            align: 'center'
+        });
+
+        dialog.velocity = 2;
+        dialog.current_string = '';
+        dialog.final_string_index = 0;
+        dialog.type_timeout = 0;
+        dialog.enable_typing = true;
+
+        
+    },
+
     //GamePlay
+    
+    current_animation_state: ANIMATION_STATES.RULO_THANKS,
+    
+
     update: function () {
 
         this.Handle_Collisions();
 
-        if (!is_animation_playing) {
+        if (is_animation_playing) {
+             this.Handle_Animations();
+        } else {
+            is_animation_playing = true;
             this.Handle_Player_Actions();
-        } 
-
-        this.Handle_Camera_Movement();
-        //this.Handle_Debug();
+            this.Handle_Camera_Movement();
+            this.Play_Animation();
+        }
+        console.log(this.current_animation_state);
     },
+
+    Handle_Animations: function() {
+        if (this.current_animation_state == ANIMATION_STATES.RULO_THANKS) {
+
+            this.Update_Dialog();
+            this.Handle_Text_Update(); 
+
+            if (!dialog.enable_typing) {
+                this.Handle_Animation_State_Transition();
+                
+            }
+        } else if (this.current_animation_state == ANIMATION_STATES.RULO_SEARCHING_FOR_DIAMOND_TEXT) {
+
+            this.Update_Dialog();
+            this.Handle_Text_Update(); 
+            if (!dialog.enable_typing) {
+                this.Handle_Animation_State_Transition();
+                
+            }
+        }
+    },
+
+    Handle_Animation_State_Transition: function() {
+
+        if (animation_transition_counter <= 0) {
+            this.current_animation_state++;
+
+            dialog.current_string = '';
+            dialog.final_string_index = 0;
+            dialog.type_timeout = 0;
+            dialog.enable_typing = true;
+            animation_transition_counter = animation_transition_counter_time;
+            dialog.text.setText('');
+        }
+        dialog.final_string = '';
+        animation_transition_counter--;
+        
+    },
+
+    Play_Animation: function() {
+        this.Set_Up_Dialog();
+    },
+
+    Handle_Text_Update: function() {
+
+        if (dialog.enable_typing) {
+
+            if (dialog.type_timeout > dialog.velocity) {
+
+                dialog.text.setText(dialog.current_string += dialog.final_string[dialog.final_string_index]);
+                dialog.type_timeout = 0;
+
+                if (dialog.current_string.length != dialog.final_string.length) {
+                    dialog.final_string_index++;
+                } else {
+                    dialog.enable_typing = false;
+                }
+            }
+            dialog.type_timeout++; 
+        }
+    },
+
+    Update_Dialog: function() {
+        if (this.current_animation_state == ANIMATION_STATES.RULO_THANKS) {
+            dialog.final_string = 'Rulo: Muchas gracias mi karlita hermosa por rescatarme todos estos años...';
+        } else if (this.current_animation_state == ANIMATION_STATES.RULO_SEARCHING_FOR_DIAMOND_TEXT) {
+            dialog.final_string = 'Rulo: Tengo que pagarte de alguna forma..................\n¿Qu\é es eso que brilla?....';
+        }
+    },
+
+    
 
     Handle_Collisions: function() {
         this.physics.arcade.collide(player, platforms);
         this.physics.arcade.collide(rulo, platforms);
+        this.physics.arcade.collide(distancia, platforms);
     },
 
     Handle_Player_Actions: function() {

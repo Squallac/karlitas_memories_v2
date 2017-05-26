@@ -21,7 +21,6 @@ BasicGame.Preloader.prototype = {
 		this.load.image('MainMenu_Logo', 'assets/backgrounds/MainMenu.png');
 
 		this.load.image('Dialog_1', 'assets/backgrounds/dialogo1.jpg');
-		this.load.image('Dialog_2', 'assets/backgrounds/dialogo2.jpg');
 		this.load.image('The_End', 'assets/backgrounds/fin.jpg');
 		
 		this.load.image('picture_1', 'assets/backgrounds/foto_1.jpg');
@@ -32,6 +31,7 @@ BasicGame.Preloader.prototype = {
 		this.load.spritesheet('karla','assets/karla.png',32, 48);
 		this.load.spritesheet('rulo','assets/rulo.png',32, 48);
 		this.load.spritesheet('enemigo','assets/malo.png',32, 48);
+		this.load.spritesheet('distancia','assets/distancia.png',32, 48);
 
 		this.load.image('star','assets/star.png');
 		
