@@ -42,6 +42,7 @@ BasicGame.Preloader.prototype = {
 		this.load.audio('Level_1_Music',['assets/sonidos/BellHell.mp3','assets/sonidos/BellHell.ogg']);
 		this.load.audio('enemy_sound',['assets/sonidos/i_see_you.mp3','assets/sonidos/i_see_you.ogg']);
 		this.load.audio('magic',['assets/sonidos/magia.mp3','assets/sonidos/magia.flac']);
+		this.load.audio('pickup',['assets/sonidos/picked_coin.wav']);
 		
 	},
 

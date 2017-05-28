@@ -43,15 +43,25 @@ var music;
 var jumpTimer = 0;
 
 var is_animation_playing = false;
-var blank_animation_started = true;
-var animation_transition_counter_time = 150 ;
+var animation_already_played = false;
+var blank_animation_started = false;
+var blank_animation_ended = false;
+var blank_animation_flash_delay = 15;
+var animation_transition_counter_time = 110;
 var animation_transition_counter = animation_transition_counter_time;
+var wait_timer = 0;
 
 var ANIMATION_STATES = {
     RULO_THANKS: 0,
     RULO_SEARCHING_FOR_DIAMOND_TEXT: 1,
-    RULO_SEARCHING_FOR_DIAMOND: 2,
-    RULO_BEING_CAPTURED: 3
+    PLAY_BLANK_ANIMATION: 2,
+    BEFORE_DISTANCIA_APPEARS: 3,
+    DISTANCIA_APPEARS: 4,
+    KARLA_HESITATES: 5,
+    RULO_CHEERS_KARLA: 6,
+    KARLA_QUESTIONS_HERSELF: 7,
+    KARLA_MOTIVATES: 8,
+
 };
 
 var blank;
@@ -76,7 +86,6 @@ BasicGame.Level_1.prototype = {
 
     //Setting up the game
     create: function () {
-
         this.Set_Up_Physics();
         this.Set_Up_World();
         this.Set_Up_Keys();
@@ -84,7 +93,7 @@ BasicGame.Level_1.prototype = {
         this.Set_Up_Player();
         this.Set_Up_Rulo();
         this.Set_Up_Blank_Screen();
-        //this.Play_Background_Music();
+        this.Play_Background_Music();
     },
 
     Set_Up_Physics: function() {
@@ -135,8 +144,8 @@ BasicGame.Level_1.prototype = {
 
     Set_Up_Rulo: function() {
 
-        var xOffset = 32;
-        var yOffset = 145;
+        var xOffset = 0;
+        var yOffset = 110;
 
         var posInWorldX = (this.world.width/2) - xOffset;
         var posInWorldY = this.world.height - yOffset;
@@ -145,16 +154,17 @@ BasicGame.Level_1.prototype = {
 
         this.physics.arcade.enable(rulo);
         rulo.body.collideWorldBounds = true;     
+        rulo.anchor.setTo(0.5,0.5);
 
         rulo.frame = 0;   
     },
 
     Set_Up_Distancia: function() {
         
-        var xOffset = -64;
+        var xOffset = 32;
         var yOffset = 145;
 
-        var posInWorldX = (this.world.width/2) - xOffset;
+        var posInWorldX = rulo.position.x - xOffset;
         var posInWorldY = this.world.height - yOffset;
 
         distancia = this.add.sprite(posInWorldX, posInWorldY, 'distancia');
@@ -224,15 +234,11 @@ BasicGame.Level_1.prototype = {
         dialog.final_string_index = 0;
         dialog.type_timeout = 0;
         dialog.enable_typing = true;
-
-        
     },
 
     //GamePlay
-    
     current_animation_state: ANIMATION_STATES.RULO_THANKS,
     
-
     update: function () {
 
         this.Handle_Collisions();
@@ -240,54 +246,125 @@ BasicGame.Level_1.prototype = {
         if (is_animation_playing) {
              this.Handle_Animations();
         } else {
-            is_animation_playing = true;
             this.Handle_Player_Actions();
             this.Handle_Camera_Movement();
-            this.Play_Animation();
+            this.Start_Animation();
+        }        
+    },
+
+    Start_Animation: function() {
+
+        if(!animation_already_played){
+            is_animation_playing = true;
+            animation_already_played = true;
+            this.Set_Up_Dialog();  
         }
-        console.log(this.current_animation_state);
     },
 
     Handle_Animations: function() {
-        if (this.current_animation_state == ANIMATION_STATES.RULO_THANKS) {
+        
+        if (this.current_animation_state == ANIMATION_STATES.RULO_THANKS ||
+            this.current_animation_state == ANIMATION_STATES.BEFORE_DISTANCIA_APPEARS ||
+            this.current_animation_state == ANIMATION_STATES.KARLA_HESITATES ||
+            this.current_animation_state == ANIMATION_STATES.RULO_CHEERS_KARLA ||
+            this.current_animation_state == ANIMATION_STATES.KARLA_QUESTIONS_HERSELF ||
+            this.current_animation_state == ANIMATION_STATES.KARLA_MOTIVATES) {
 
             this.Update_Dialog();
             this.Handle_Text_Update(); 
 
             if (!dialog.enable_typing) {
                 this.Handle_Animation_State_Transition();
-                
             }
+
         } else if (this.current_animation_state == ANIMATION_STATES.RULO_SEARCHING_FOR_DIAMOND_TEXT) {
 
             this.Update_Dialog();
             this.Handle_Text_Update(); 
             if (!dialog.enable_typing) {
+                rulo.scale.x = -1;
                 this.Handle_Animation_State_Transition();
-                
+            }
+
+        } else if (this.current_animation_state == ANIMATION_STATES.PLAY_BLANK_ANIMATION) {
+
+            if (blank_animation_ended) {
+                this.Handle_Animation_State_Transition();
+            } else {
+                this.Handle_Blank_Animation();    
+            }
+
+        }  else if (this.current_animation_state == ANIMATION_STATES.DISTANCIA_APPEARS) {
+            
+            if (this.Distancia_Appears_Animation.has_ended && !dialog.enable_typing) {
+                this.Handle_Animation_State_Transition();
+            } else {
+                this.Update_Dialog();
+                this.Handle_Text_Update(); 
+                this.Handle_Distancia_Appears_Animation();                
             }
         }
     },
 
-    Handle_Animation_State_Transition: function() {
-
-        if (animation_transition_counter <= 0) {
-            this.current_animation_state++;
-
-            dialog.current_string = '';
-            dialog.final_string_index = 0;
-            dialog.type_timeout = 0;
-            dialog.enable_typing = true;
-            animation_transition_counter = animation_transition_counter_time;
-            dialog.text.setText('');
+    Distancia_Appears_Animation: {
+        distancia_has_appeared: false,
+        has_ended: false,
+        time_of_character_blowing : 80,
+        time_blowing: 0,
+        impact_force: 100,        
+        blow_characters: function(){
+            
+            if (this.time_blowing <= this.time_of_character_blowing) {
+                player.body.velocity.x = -this.impact_force;
+                player.body.velocity.y = -this.impact_force;
+                rulo.body.velocity.x = this.impact_force;
+                rulo.body.velocity.y = -this.impact_force;
+                this.time_blowing++;
+                
+            } else {
+                
+                if (rulo.body.velocity.x >= 0) {
+                    player.body.velocity.x++;
+                    player.body.velocity.y++;
+                    rulo.body.velocity.x--;
+                    rulo.body.velocity.y++;
+                    this.fall_time--;
+                } else {
+                    this.has_ended = true;
+                }
+                
+            }
+            
         }
-        dialog.final_string = '';
-        animation_transition_counter--;
+    },
+
+    Handle_Distancia_Appears_Animation: function() {
+        if (!this.Distancia_Appears_Animation.distancia_has_appeared) {
+            this.Set_Up_Distancia();
+            this.Distancia_Appears_Animation.distancia_has_appeared = true;
+        }
+        this.Distancia_Appears_Animation.blow_characters();
         
     },
 
-    Play_Animation: function() {
-        this.Set_Up_Dialog();
+    Handle_Blank_Animation: function() {
+
+        if (!blank_animation_started) {
+            blank_animation_started = true;
+            this.Play_SFX(ANIMATION_STATES.PLAY_BLANK_ANIMATION);
+        }
+
+        blank.x = this.camera.x;
+        blank.y = this.camera.y;
+
+        blank.alpha = blank_total_counter%2 === 0 ? 0:1;
+
+        blank_total_counter++;
+
+        if (blank_total_counter > blank_animation_flash_delay) {
+            blank_animation_ended = true;
+            blank.alpha = 0;
+        }
     },
 
     Handle_Text_Update: function() {
@@ -314,10 +391,36 @@ BasicGame.Level_1.prototype = {
             dialog.final_string = 'Rulo: Muchas gracias mi karlita hermosa por rescatarme todos estos años...';
         } else if (this.current_animation_state == ANIMATION_STATES.RULO_SEARCHING_FOR_DIAMOND_TEXT) {
             dialog.final_string = 'Rulo: Tengo que pagarte de alguna forma..................\n¿Qu\é es eso que brilla?....';
+        } else if (this.current_animation_state == ANIMATION_STATES.BEFORE_DISTANCIA_APPEARS) {
+            dialog.final_string = '???: BUAHAHAHAHAHAH!';
+        } else if (this.current_animation_state == ANIMATION_STATES.DISTANCIA_APPEARS) {
+            dialog.final_string = 'Distancia: ¡¡¡Soy la Diosa Distancia!!! \n He venido a llevarme a Rulo, para que nunca sean felices!';
+        } else if (this.current_animation_state == ANIMATION_STATES.KARLA_HESITATES) {
+            dialog.final_string = 'Karla: Oh no...... creo que ella es demasiado enemigo para mi....\n no voy a poder hacerlo....';
+        } else if (this.current_animation_state == ANIMATION_STATES.RULO_CHEERS_KARLA) {
+            dialog.final_string = 'Rulo: ¡Animo Karla! Yo se que eres una persona genial y que puedes hacer todo.....\n solo... tienes que vencerte a ti misma';
+        } else if (this.current_animation_state == ANIMATION_STATES.KARLA_QUESTIONS_HERSELF) {
+            dialog.final_string = 'Karla: Vencerme a mi misma...................';
+        }  else if (this.current_animation_state == ANIMATION_STATES.KARLA_MOTIVATES) {
+            dialog.final_string = 'Karla: ¡Muy bien, Yo se que puedo! Y te derrotare Distancia';
         }
     },
 
-    
+    Handle_Animation_State_Transition: function() {
+
+        if (animation_transition_counter <= 0) {
+            this.current_animation_state++;
+
+            dialog.current_string = '';
+            dialog.final_string_index = 0;
+            dialog.type_timeout = 0;
+            dialog.enable_typing = true;
+            animation_transition_counter = animation_transition_counter_time;
+            dialog.text.setText('');
+        }
+        dialog.final_string = '';
+        animation_transition_counter--;
+    },
 
     Handle_Collisions: function() {
         this.physics.arcade.collide(player, platforms);
@@ -367,6 +470,7 @@ BasicGame.Level_1.prototype = {
     },
 
     Create_New_Star_Bullet : function() {
+
         var that = this;
         var star = new small_star_power();
         var star_offset_x = player.width/2;
@@ -395,6 +499,7 @@ BasicGame.Level_1.prototype = {
     },
 
     Check_Star_List: function() {
+
         for (var index = 0; index < stars.length; index++) {
             var current_star = stars[index];
             current_star.timeout++;
@@ -427,28 +532,12 @@ BasicGame.Level_1.prototype = {
         this.game.debug.cameraInfo(this.game.camera, 0 , 350);
     },
 
-    Blank_Animation: function() {
-        
-        this.Play_SFX(2); 
-        blank_total_counter++;            
-        
-        blank.x = this.camera.x;
-        blank.y = this.camera.y;
-        blank.alpha = 1;
-
-        if (blank_total_counter >= 3) {
-            blank.alpha = 0;
-            blank_animation_started = true;
-            dead_enemies_animation_started = false;
-        }
-    },
-
     Play_SFX: function(sfx) {
         if (sfx == 1) {
             noise = this.add.audio('enemy_sound');
             noise.play();
 
-        } else if (sfx == 2) {
+        } else if (sfx == ANIMATION_STATES.PLAY_BLANK_ANIMATION) {
             magic = this.add.audio('magic');
             magic.play();
         }
